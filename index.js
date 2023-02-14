@@ -2,7 +2,7 @@
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
 // @version      0.1
-// @description  try to take over the world!
+// @description  让web页面更加容易浏览、操作
 // @author       Shadow-blank
 // @match        https://m.weibo.cn/status/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=weibo.cn
