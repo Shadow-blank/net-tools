@@ -5,6 +5,9 @@
 // @description  让web页面更加容易浏览、操作
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
+// @match        *://www.comicat.org/*
+// @match        *://2.comicat.net/*
+// @match        *://3.comicat.net/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=weibo.cn
 // @grant        none
 // @license      MIT
@@ -22,14 +25,19 @@
     }, 500)
   }
 
+  const comicatMoveDown = () => {
+    const downEle = document.querySelector('#box_download')
+    downEle.parentElement.insertBefore(downEle, downEle.parentElement.firstElementChild)
+  }
+
   const host = location.host
 
-  const WEIBO_M = 'm.weibo.cn'
-
-  switch (host) {
-    case WEIBO_M :
-      weiboMJump2PC()
-      break
+  const hostMap = {
+    'm.weibo.cn': weiboMJump2PC,
+    '2.comicat.net': comicatMoveDown,
+    '3.comicat.net': comicatMoveDown
   }
+
+  hostMap[host] && hostMap[host]()
 
 })()
