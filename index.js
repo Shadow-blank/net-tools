@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.1.2
+// @version      0.1.3
 // @description  让web页面更加容易浏览、操作
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -11,7 +11,7 @@
 // @match        *://dick.xfani.com/*
 // @match        *://live.bilibili.com/*
 // @match        *://www.bilibili.com/*
-// @icon         https://github.com/Shadow-blank/net-tools/blob/main/favicon.ico
+// @icon         https://raw.githubusercontent.com/Shadow-blank/net-tools/main/favicon.ico
 // @grant        none
 // @license      MIT
 // ==/UserScript==
