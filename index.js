@@ -23,15 +23,25 @@
 
   let data = null
 
+  const defaultCheck = ['m.weibo.cn', 'comicat.net', 'dick.xfani.com', 'live.bilibili.com']
+
+  const download = (blob, filename) => {
+    const blobUrl = typeof blob === 'string' ? blob : window.URL.createObjectURL(blob);
+    // 这里的文件名根据实际情况从响应头或者url里获取
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(blobUrl);
+  }
+
   const module = {
     weibo: {
       name: '微博',
-      checked: true,
       children: [
         {
           key: 'm.weibo.cn',
           name: '移动端页面自动跳转到PC页面 屏幕宽度小于980不跳转',
-          checked: true,
           run() {
             if (window.screen.width > 980) {
               setTimeout(() => {
@@ -46,27 +56,39 @@
     },
     comicat: {
       name: '漫猫',
-      checked: true,
       children: [
         {
           key: 'comicat.net',
           name: '下载按钮位置上升',
-          checked: true,
           run() {
-            const downEle = document.querySelector('#box_download')
-            downEle.parentElement.insertBefore(downEle, downEle.parentElement.firstElementChild)
+            if (location.pathname === '/') {
+              createStyle(`
+                table tbody tr td:nth-child(6) {cursor: pointer; user-select: none;}
+                table tbody tr td:nth-child(6) span:after {
+                  content: url("data:image/svg+xml,%3csvg viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg' width='13' height='13' %3e%3cpath  d='M160 832h704a32 32 0 1 1 0 64H160a32 32 0 1 1 0-64zm384-253.696 236.288-236.352 45.248 45.248L508.8 704 192 387.2l45.248-45.248L480 584.704V128h64v450.304z'/%3e%3c/svg%3e");
+                  display: inline-block;margin-left: 10px; color: #606266;
+                }`)
+              document.querySelector('#data_list').addEventListener('click', e => {
+                if (e.target.classList.value.includes('btl')) {
+                  const magnet = /show-([a-z0-9]+)/.exec(e.target.parentElement.parentElement.innerHTML)[1]
+                  const href = `magnet:?xt=urn:btih:${magnet}&tr=http://open.acgtracker.com:1096/announce`
+                  download(href)
+                }
+              })
+            } else {
+              const downEle = document.querySelector('#box_download')
+              downEle.parentElement.insertBefore(downEle, downEle.parentElement.firstElementChild)
+            }
           }
         }
       ]
     },
     xfani: {
       name: '稀饭',
-      checked: true,
       children: [
         {
           key: 'dick.xfani.com',
           name: '取消右键限制',
-          checked: true,
           run() {
             ['contextmenu', 'click', 'mousedown', 'mouseup', 'selectstart'].forEach(item => clearEvent(item))
 
@@ -81,22 +103,19 @@
     },
     bilibili: {
       name: 'B站',
-      checked: true,
       children: [
         {
           key: 'www.bilibili.com',
           name: '去除首页轮播图 只保留番剧和推荐',
-          checked: true,
           run() {
             createStyle(`
-          .bili-grid, .recommended-swipe, .eva-banner{display: none!important;}
-          .bili-video-card.is-rcmd, .bili-grid:nth-child(9), .bili-grid:nth-child(1) {display: block!important;} `)
+          .bili-layout > .bili-grid, .recommended-swipe, .eva-banner{display: none!important;}
+          .bili-video-card.is-rcmd, .bili-layout > .bili-grid:nth-child(9), .bili-layout >.bili-grid:nth-child(1) {display: block!important;} `)
           }
         },
         {
           key: 'live.bilibili.com',
           name: '直播页面去掉广告 只显示直播',
-          checked: true,
           run() {
             let timer = ''
             // 推广直播页面进入原始页面
@@ -148,11 +167,16 @@
     function getDefaultCheckValue() {
       const result = []
       for (const key in module) {
+        const children = module[key].children.map(item => ({
+          name: item.name,
+          key: item.key
+        }))
+        const value = defaultCheck.filter(value => children.find(item => item.key === value))
         result.push({
           name: module[key].name,
           key,
-          checked: module[key].checked,
-          children: module[key].children.map(item => ({name: item.name, key: item.key, checked: item.checked}))
+          children,
+          value
         })
       }
       return result
@@ -162,17 +186,14 @@
   function initModule() {
     const host = location.host
 
-    for (const key in module) {
-      const {checked, children} = module[key]
-      if (host.includes(key)) {
-        if (!checked) {
-          return
-        } else {
-          const childrenModule = children.find(item => host.includes(item.key) && item.checked)
-          return childrenModule && childrenModule.run()
-        }
+    data.checked.forEach(item => {
+      const {children, value, key} = item
+      if (host.includes(key) && value.length) {
+        const currData = children.find(item => host.includes(item.key) && value.includes(item.key)) || {}
+        const currentModule =  module[key].children.find(item => item.key === currData.key)
+        return currentModule && currentModule.run()
       }
-    }
+    })
   }
 
   function initControlPanel() {
@@ -183,7 +204,7 @@
       <style>
         #control-panel{ 
           display: none;
-          padding: 10px; 
+          padding: 15px; 
           position: fixed; 
           top: 50%;
           left: 50%;
@@ -195,19 +216,142 @@
           color: #606266
         }
         .control-panel-save{
-          cursor: pointer;
           margin-top: 20px;
           float: right;
+          line-height: 1;
+          height: 32px;
+          cursor: pointer;
+          color: #ffffff;
+          text-align: center;
+          box-sizing: border-box;
+          outline: none;
+          transition: .1s;
+          font-weight: 500;
+          user-select: none;
+          background-color: #409eff;
+          border: 1px solid #409eff;
+          padding: 8px 15px;
+          font-size: 14px;
+          border-radius: 4px;
         }
+        .control-panel-save:hover{
+          border-color: #79bbff;
+          background-color: #79bbff;
+        }
+
         .control-panel-close{
+          width: 21px;
           cursor: pointer;
           float: right;
+          color: #606266;
+        }
+        
+        .el-checkbox {
+          color: #606266;
+          font-weight: 500;
+          font-size: 14px;
+          position: relative;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          white-space: nowrap;
+          user-select: none;
+          margin-right: 30px;
+          height: 32px;
+        }
+        
+          .el-checkbox__input {
+            white-space: nowrap;
+            cursor: pointer;
+            outline: none;
+            display: inline-flex;
+            position: relative;
+          }
+          .el-checkbox__original {
+            opacity: 0;
+            outline: none;
+            position: absolute;
+            margin: 0;
+            width: 0;
+            height: 0;
+            z-index: -1;
+          }
+          .el-checkbox__input.is-checked .el-checkbox__inner {
+            background-color: #409eff;
+            border-color: #409eff;
+         }
+
+          .el-checkbox__inner {
+            display: inline-block;
+            position: relative;
+            border: 1px solid #dcdfe6;
+            border-radius: 2px;
+            box-sizing: border-box;
+            width: 14px;
+            height: 14px;
+            z-index: 1;
+            transition: border-color .25s cubic-bezier(.71,-.46,.29,1.46),background-color .25s cubic-bezier(.71,-.46,.29,1.46),outline .25s cubic-bezier(.71,-.46,.29,1.46);
+          }
+          
+          .el-checkbox__input.is-checked .el-checkbox__inner:after {
+            transform: rotate(45deg) scaleY(1);
+        }
+        
+        .el-checkbox__inner:after {
+            box-sizing: content-box;
+            content: "";
+            border: 1px solid #fff;
+            border-left: 0;
+            border-top: 0;
+            height: 7px;
+            left: 4px;
+            position: absolute;
+            top: 1px;
+            transform: rotate(45deg) scaleY(0);
+            width: 3px;
+            transition: transform .15s ease-in .05s;
+            transform-origin: center;
+        }
+        
+          .el-checkbox__input.is-checked+.el-checkbox__label {
+              color: #409eff;
+          }
+        
+        .el-checkbox__label {
+            display: inline-block;
+            padding-left: 8px;
+            line-height: 1;
+            font-size: 14px;
         }
       </style>`
     $('body').append(control).append(style)
 
     $('.control-panel-close').click(controlPanel.hidden)
     $('.control-panel-save').click(controlPanel.save)
+    $('#control-panel .select-wrap').click(e => {
+      const ele = e.originalEvent.target
+      if (ele.type === 'checkbox') {
+        ele.parentElement.classList.toggle('is-checked')
+        ele.parentElement.nextElementSibling.classList.toggle('is-checked')
+        const labelClassList = ele.parentElement.parentElement.classList
+        for (let i = 0; i < data.checked.length; i++) {
+          const selectKey = ele.dataset.key
+          const {key, value} = data.checked[i]
+          if (selectKey.includes(key)) {
+            const index = value.findIndex(item => item === selectKey)
+            if (index > 0) {
+              value.splice(index, 1)
+              labelClassList.remove('is-checked')
+            } else {
+              value.push(selectKey)
+              // if (value.length === length) {
+              //   labelClassList.add('is-checked')
+              // }
+            }
+          }
+        }
+      }
+    })
     controlPanel.status = 1
     controlPanel.show()
 
@@ -223,8 +367,14 @@
 
       return (`
         <div id="control-panel">
-           <div class="control-panel-close"> X </div>
-        ${createSelect()}
+          <div class="control-panel-close">
+            <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+               <path fill="currentColor" d="M764.288 214.592 512 466.88 259.712 214.592a31.936 31.936 0 0 0-45.12 45.12L466.752 512 214.528 764.224a31.936 31.936 0 1 0 45.12 45.184L512 557.184l252.288 252.288a31.936 31.936 0 0 0 45.12-45.12L557.12 512.064l252.288-252.352a31.936 31.936 0 1 0-45.12-45.184z"></path>
+            </svg>
+          </div>
+          <div class="select-wrap">
+            ${createSelect()}
+          </div>
            <div class="control-panel-save">保存</div>
         </div>
       `)
@@ -233,21 +383,21 @@
     function createSelect() {
       return data.checked.map(item =>
         `<div>
-          ${getCheck(item.name, 0)}
+          ${getCheck(item, item.value.length === item.children.length, 0)}
           </br>
-          ${item.children.map(item => getCheck(item.name, 1)).join('')}
+          ${item.children.map(_item => getCheck(_item, item.value.includes(_item.key), 1)).join('')}
        </div>`
       ).join('')
     }
 
-    function getCheck(str, level) {
+    function getCheck(item, checked, level) {
       return `
-        <label class="el-checkbox is-checked" style="padding-left: ${18 * level}px;">
-          <span class="el-checkbox__input is-checked">
-            <input class="el-checkbox__original" type="checkbox">
-            <span class="el-checkbox__inner"></span>
+        <label class="el-checkbox"  style="padding-left: ${18 * level}px;">
+          <span class="el-checkbox__input${checked ? ' is-checked' : ''}" >
+            <input class="el-checkbox__original" type="checkbox" data-key="${item.key}">
+            <span class="el-checkbox__inner""></span>
           </span>
-          <span class="el-checkbox__label">${str}</span>
+          <span class="el-checkbox__label" data-key="${item.key}">${item.name}</span>
         </label>
       `
     }
