@@ -10,6 +10,9 @@
 // @match        *://dick.xfani.com/*
 // @match        *://live.bilibili.com/*
 // @match        *://www.bilibili.com/*
+// @match        *://ngabbs.com/*
+// @match        *://nga.178.com/*
+// @match        *://www.baidu.com/*
 // @icon         https://raw.githubusercontent.com/Shadow-blank/net-tools/main/favicon.ico
 // @require      https://cdn.staticfile.org/jquery/3.4.0/jquery.min.js
 // @grant        GM_registerMenuCommand
@@ -23,7 +26,7 @@
 
   let data = null
 
-  const defaultCheck = ['m.weibo.cn', 'comicat.net', 'dick.xfani.com', 'live.bilibili.com']
+  const defaultCheck = ['m.weibo.cn', 'comicat.net', 'dick.xfani.com', 'live.bilibili.com', 'nga']
 
   const download = (blob, filename) => {
     const blobUrl = typeof blob === 'string' ? blob : window.URL.createObjectURL(blob);
@@ -136,6 +139,56 @@
           }
         }
       ]
+    },
+    nga: {
+      name: 'NGA',
+      children: [
+        {
+          key: 'nga',
+          name: '保存此贴和下载全部图片',
+          run() {
+            const tid = Object.fromEntries(new URLSearchParams(location.search)).tid || 9999
+            if (!tid) return
+            const href = location.href
+
+            // 当前页数
+            let currentPage = 0
+            // 总页数 拿下一页时可能会更新
+            let totalPage = undefined
+            // 上一页的最后一条 防止抽楼重复
+            // let lastTotal = undefined
+
+            $('#m_pbtntop .w100').append(`<div style="display: inline-block"><a href="javascript:void(0)"  id="downAllImage" class=" uitxt1">下载全部图片</a></div>`)
+
+            $('#downAllImage').click(() => {
+              getDocument(getImage)
+            })
+
+            function getDocument(cb) {
+              // 避免从第二页开始获取
+              currentPage++
+              $.get(href.replace(/page=[0-9]+/g, `page=${currentPage}`), cb)
+            }
+
+            function parseDocument(str) {
+
+             //  if (currentPage < totalPage) {
+             //    getDocument(currentPage + 1)
+             //  }
+            }
+
+            function isLastPage(str) {
+              // 最后一页 只有currentPage - 1 没有currentPage + 1
+              return !str.includes(`page=${currentPage + 1}`)
+            }
+
+            function getImage(str){
+              [...str.matchAll(/\[img\]\.([^\[]+)[/img]/g)].map(item => `/attachments${item[1]}g`)
+              !isLastPage(str) && getDocument(getImage)
+            }
+          }
+        }
+      ]
     }
   }
 
@@ -184,7 +237,8 @@
   }
 
   function initModule() {
-    const host = location.host
+    // const host = location.host
+    const host =  'bbs.nga.cn'
 
     data.checked.forEach(item => {
       const {children, value, key} = item
