@@ -2,7 +2,7 @@
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
 // @version      0.1.4
-// @description  让web页面更加容易浏览、操作
+// @description  你是GG还是MM啊
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
 // @match        *://www.comicat.org/*
@@ -10,12 +10,14 @@
 // @match        *://dick.xfani.com/*
 // @match        *://live.bilibili.com/*
 // @match        *://www.bilibili.com/*
-// @match        *://ngabbs.com/*
-// @match        *://nga.178.com/*
-// @match        *://www.baidu.com/*
+// @match        *://ngabbs.com/read.php*
+// @match        *://nga.178.com/read.php*
+// @match        *://bbs.nga.cn/read.php*
 // @icon         https://raw.githubusercontent.com/Shadow-blank/net-tools/main/favicon.ico
 // @require      https://cdn.staticfile.org/jquery/3.4.0/jquery.min.js
 // @grant        GM_registerMenuCommand
+// @grant        GM_xmlhttpRequest
+// @connect      img.nga.178.com
 // @license      MIT
 // ==/UserScript==
 
@@ -26,13 +28,14 @@
 
   let data = null
 
-  const defaultCheck = ['m.weibo.cn', 'comicat.net', 'dick.xfani.com', 'live.bilibili.com', 'nga']
+  const defaultCheck = ['m.weibo.cn', 'comicat.net', 'dick.xfani.com', 'live.bilibili.com', 'www.bilibili.com', 'nga']
 
   const download = (blob, filename) => {
     const blobUrl = typeof blob === 'string' ? blob : window.URL.createObjectURL(blob);
     // 这里的文件名根据实际情况从响应头或者url里获取
     const a = document.createElement('a');
     a.href = blobUrl;
+    a.target = 'block'
     a.download = filename;
     a.click();
     window.URL.revokeObjectURL(blobUrl);
@@ -130,11 +133,13 @@
               }
             }, 100)
             // 将直播画面居中显示
-            createStyle(`         
+            createStyle(`
                       .live-room-app.p-relative{overflow: hidden}
                       .main {padding: 0px}
                       .player-ctnr.left-container.p-relative.z-player-ctnr{ width: 100%;  margin: 10px auto}
-                      #iframe-popup-area{ display: none}
+                      .live-room-app .app-content{padding-top: 0;}
+                      .live-room-app .app-content .app-body {width: 100%;}
+                       #iframe-popup-area, #aside-area-vm, #head-info-vm, #gift-control-vm, #sections-vm, #link-footer-vm, #sidebar-vm, #room-ssr-vm {display:none}
                       section{margin: 0}`)
           }
         }
@@ -147,20 +152,23 @@
           key: 'nga',
           name: '保存此贴和下载全部图片',
           run() {
-            const tid = Object.fromEntries(new URLSearchParams(location.search)).tid || 9999
+            const tid = Object.fromEntries(new URLSearchParams(location.search)).tid
             if (!tid) return
-            const href = location.href
+            clearAdv()
+            let href = location.href
 
             // 当前页数
             let currentPage = 0
+            if (!href.includes('currentPage')) href += `&page=${1}`
             // 总页数 拿下一页时可能会更新
             let totalPage = undefined
             // 上一页的最后一条 防止抽楼重复
             // let lastTotal = undefined
 
-            $('#m_pbtntop .w100').append(`<div style="display: inline-block"><a href="javascript:void(0)"  id="downAllImage" class=" uitxt1">下载全部图片</a></div>`)
+            $('#m_nav .nav .nav_link:nth-of-type(2)').after(`<a class= "nav_link" id="downAllImage" href = "javascript:void(0)"> 图片批量下载 </a>`, )
 
             $('#downAllImage').click(() => {
+              $('body').append(`<script src="https://cdn.staticfile.org/jszip/3.10.1/jszip.min.js"></script>`)
               getDocument(getImage)
             })
 
@@ -172,9 +180,9 @@
 
             function parseDocument(str) {
 
-             //  if (currentPage < totalPage) {
-             //    getDocument(currentPage + 1)
-             //  }
+              //  if (currentPage < totalPage) {
+              //    getDocument(currentPage + 1)
+              //  }
             }
 
             function isLastPage(str) {
@@ -182,9 +190,25 @@
               return !str.includes(`page=${currentPage + 1}`)
             }
 
-            function getImage(str){
-              [...str.matchAll(/\[img\]\.([^\[]+)[/img]/g)].map(item => `/attachments${item[1]}g`)
+            function getImage(str) {
+              const imgList = [...new Set([...str.matchAll(/\[img\]\.([^\[]+)[/img]/g)].map(item => `${item[1]}g`))]
+              imgList.forEach(url => GM_xmlhttpRequest({
+                method: 'GET',
+                responseType: 'blob',
+                url:`https://img.nga.178.com/attachments${url}`,
+                onload(e){
+                  download(e.response, url)
+                }
+              }))
               !isLastPage(str) && getDocument(getImage)
+            }
+
+            function clearAdv() {
+              setTimeout(()=> {
+                document.querySelectorAll('img[onload^="__INSECTOB"]').forEach(item => {
+                  item.parentElement.parentElement.remove()
+                })
+              }, 200)
             }
           }
         }
@@ -237,14 +261,13 @@
   }
 
   function initModule() {
-    // const host = location.host
-    const host =  'bbs.nga.cn'
+    const host = location.host
 
     data.checked.forEach(item => {
       const {children, value, key} = item
       if (host.includes(key) && value.length) {
         const currData = children.find(item => host.includes(item.key) && value.includes(item.key)) || {}
-        const currentModule =  module[key].children.find(item => item.key === currData.key)
+        const currentModule = module[key].children.find(item => item.key === currData.key)
         return currentModule && currentModule.run()
       }
     })
@@ -256,10 +279,10 @@
 
     const style = `
       <style>
-        #control-panel{ 
+        #control-panel{
           display: none;
-          padding: 15px; 
-          position: fixed; 
+          padding: 15px;
+          position: fixed;
           top: 50%;
           left: 50%;
           background: white;
@@ -299,7 +322,7 @@
           float: right;
           color: #606266;
         }
-        
+
         .el-checkbox {
           color: #606266;
           font-weight: 500;
@@ -313,7 +336,7 @@
           margin-right: 30px;
           height: 32px;
         }
-        
+
           .el-checkbox__input {
             white-space: nowrap;
             cursor: pointer;
@@ -346,11 +369,11 @@
             z-index: 1;
             transition: border-color .25s cubic-bezier(.71,-.46,.29,1.46),background-color .25s cubic-bezier(.71,-.46,.29,1.46),outline .25s cubic-bezier(.71,-.46,.29,1.46);
           }
-          
+
           .el-checkbox__input.is-checked .el-checkbox__inner:after {
             transform: rotate(45deg) scaleY(1);
         }
-        
+
         .el-checkbox__inner:after {
             box-sizing: content-box;
             content: "";
@@ -366,11 +389,11 @@
             transition: transform .15s ease-in .05s;
             transform-origin: center;
         }
-        
+
           .el-checkbox__input.is-checked+.el-checkbox__label {
               color: #409eff;
           }
-        
+
         .el-checkbox__label {
             display: inline-block;
             padding-left: 8px;
