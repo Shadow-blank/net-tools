@@ -162,7 +162,7 @@
               if (!href.includes('page=')) href += `&page=${1}`
 
               let str = `
-                <a class= "nav_link" id="downAllImage" href = "javascript:void(0)"> 图片下载 </a>
+                <a class="nav_link" id="downAllImage" href="javascript:void(0)"> 图片下载 </a>
                 <!--<a class= "nav_link" id="downDoc" href = "javascript:void(0)"> 保存此贴 </a>-->
               `
               if (document.querySelector('.nav_spr')){
