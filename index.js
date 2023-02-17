@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.1.4
+// @version      0.1.5
 // @description  你是GG还是MM啊
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -67,7 +67,7 @@
           key: 'comicat.net',
           name: '下载按钮位置上升',
           run() {
-            if (location.pathname === '/') {
+            if (!location.pathname.includes('/show-')) {
               createStyle(`
                 table tbody tr td:nth-child(6) {cursor: pointer; user-select: none;}
                 table tbody tr td:nth-child(6) span:after {
@@ -150,32 +150,73 @@
       children: [
         {
           key: 'nga',
-          name: '保存此贴和下载全部图片',
+          name: '下载图片',
           run() {
-            const tid = Object.fromEntries(new URLSearchParams(location.search)).tid
-            if (!tid) return
-            clearAdv()
+            if (!Object.fromEntries(new URLSearchParams(location.search)).tid) return
             let href = location.href
+            initNGA()
 
-            // 当前页数
-            let currentPage = 0
-            if (!href.includes('currentPage')) href += `&page=${1}`
-            // 总页数 拿下一页时可能会更新
-            let totalPage = undefined
-            // 上一页的最后一条 防止抽楼重复
-            // let lastTotal = undefined
+            function initNGA() {
+              clearAdv()
 
-            $('#m_nav .nav .nav_link:nth-of-type(2)').after(`<a class= "nav_link" id="downAllImage" href = "javascript:void(0)"> 图片批量下载 </a>`, )
+              if (!href.includes('page=')) href += `&page=${1}`
 
-            $('#downAllImage').click(() => {
-              $('body').append(`<script src="https://cdn.staticfile.org/jszip/3.10.1/jszip.min.js"></script>`)
-              getDocument(getImage)
-            })
+              let str = `
+                <a class= "nav_link" id="downAllImage" href = "javascript:void(0)"> 图片下载 </a>
+                <!--<a class= "nav_link" id="downDoc" href = "javascript:void(0)"> 保存此贴 </a>-->
+              `
+              if (document.querySelector('.nav_spr')){
+                str = `<span class="nav_spr">&emsp;<span>»</span></span>` + str
+              }
 
-            function getDocument(cb) {
-              // 避免从第二页开始获取
-              currentPage++
-              $.get(href.replace(/page=[0-9]+/g, `page=${currentPage}`), cb)
+              $('#m_nav .nav .nav_link:nth-of-type(2)').after(str)
+
+              $('#downAllImage').click(() => {
+                addScript()
+                down()
+              })
+              $('#downDoc').click(() => {
+                addScript()
+                down(1)
+              })
+
+            }
+
+            /**
+             * 下载
+             * @param downType 默认是图片 1是帖子
+             */
+            function down(downType = 0) {
+              getDocument().then(strArr => {
+                const zip = new JSZip()
+                const promiseArr = []
+
+                switch (downType) {
+                  case 0:
+                    promiseArr.push(downImage(getImage(strArr), zip))
+                    break
+                  case 1:
+                    break
+                }
+                Promise.all(promiseArr).then(() => {
+                  zip.generateAsync({type: 'blob'}).then(function (content) {
+                    saveAs(content, `${document.querySelector('title').innerText}.zip`);
+                  });
+                })
+              })
+            }
+
+            function getDocument(currentPage = 1, documentArr = []) {
+              return new Promise(resolve => {
+                $.get(href.replace(/page=[0-9]+/g, `page=${currentPage}`), str => {
+                  documentArr.push(str)
+                  if (isLastPage(str, currentPage)) {
+                    resolve(documentArr)
+                  } else {
+                    getDocument(currentPage + 1, documentArr).then(resolve)
+                  }
+                })
+              })
             }
 
             function parseDocument(str) {
@@ -185,30 +226,42 @@
               //  }
             }
 
-            function isLastPage(str) {
+            function isLastPage(str, currentPage) {
               // 最后一页 只有currentPage - 1 没有currentPage + 1
               return !str.includes(`page=${currentPage + 1}`)
             }
 
-            function getImage(str) {
-              const imgList = [...new Set([...str.matchAll(/\[img\]\.([^\[]+)[/img]/g)].map(item => `${item[1]}g`))]
-              imgList.forEach(url => GM_xmlhttpRequest({
-                method: 'GET',
-                responseType: 'blob',
-                url:`https://img.nga.178.com/attachments${url}`,
-                onload(e){
-                  download(e.response, url)
-                }
+            function getImage(strArr) {
+              return [...new Set(strArr.reduce((prev, curr) => prev.concat([...curr.matchAll(/\[img\]\.([^\[]+)[/img]/g)].map(item => `${item[1]}g`)), []))]
+            }
+
+            function downImage(arr, zip) {
+              const promiseArr = arr.map(item => new Promise((resolve) => {
+                console.log(item)
+                GM_xmlhttpRequest({
+                  method: 'GET',
+                  responseType: 'blob',
+                  url: `https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`,
+                  onload(e) {
+                    zip.file(`img/${item.replace(/\//g, '')}`, e.response)
+                    resolve()
+                  }
+                })
               }))
-              !isLastPage(str) && getDocument(getImage)
+              return Promise.all(promiseArr)
             }
 
             function clearAdv() {
-              setTimeout(()=> {
+              setTimeout(() => {
                 document.querySelectorAll('img[onload^="__INSECTOB"]').forEach(item => {
                   item.parentElement.parentElement.remove()
                 })
               }, 200)
+            }
+
+            function addScript() {
+              $('body').append(`<script src="https://cdn.staticfile.org/jszip/3.10.1/jszip.min.js"></script>`)
+              $('body').append(`<script src="https://cdn.staticfile.org/FileSaver.js/2.0.5/FileSaver.min.js"></script>`)
             }
           }
         }
