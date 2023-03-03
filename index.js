@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.1.7
+// @version      0.1.8
 // @description  你是GG还是MM啊
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -169,7 +169,7 @@
                 str = `<span class="nav_spr">&emsp;<span>»</span></span>` + str
               }
 
-              $('#m_nav .nav .nav_link:nth-of-type(2)').after(str)
+              $('#m_nav .nav .clear').first().before(str)
 
               $('#downAllImage').click(() => {
                 down()
