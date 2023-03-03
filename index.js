@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.1.5
+// @version      0.1.9
 // @description  你是GG还是MM啊
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -165,11 +165,11 @@
                 <a class="nav_link" id="downAllImage" href="javascript:void(0)"> 图片下载 </a>
                 <!--<a class= "nav_link" id="downDoc" href = "javascript:void(0)"> 保存此贴 </a>-->
               `
-              if (document.querySelector('.nav_spr')){
+              if (document.querySelector('.nav_spr')) {
                 str = `<span class="nav_spr">&emsp;<span>»</span></span>` + str
               }
 
-              $('#m_nav .nav .nav_link:nth-of-type(2)').after(str)
+              $('#m_nav .nav .clear').first().before(str)
 
               $('#downAllImage').click(() => {
                 down()
@@ -223,28 +223,46 @@
             }
 
             function getImage(strArr) {
-              return [...new Set(strArr.reduce((prev, curr) => prev.concat([...curr.matchAll(/<table[\W\w]*?\[img\]+.([^[]+)[\W\w]*?table>/g)].map(item => `${item[1]}` )), []))]
+              return [...new Set(strArr.reduce((prev, curr) => prev.concat(...[...curr.matchAll(/<table[\W\w]*?table>/g)].map(([item]) => [...item.matchAll(/\[img\]+\.?([^\[]+)\[\/img\]/g) || []].map(item => item[1]))), []))]
             }
 
             function downImage(arr, zip) {
               const promiseArr = arr.map(item => new Promise((resolve) => {
                 let url = item
-                if (!item.includes('http')){
+                if (!item.includes('http')) {
                   item = item.replace('.medium.jpg', '')
                   url = `https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`
                 }
-                console.log(`https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`)
+                console.log(url)
+                requestImg(url, zip).then(data => {
+                  zip.file(`img/${item.replace(/\//g, '')}`, data)
+                  resolve()
+                })
+              }))
+              return Promise.all(promiseArr)
+            }
+
+            function requestImg(url, isRepeat) {
+              return new Promise((resolve) => {
                 GM_xmlhttpRequest({
                   method: 'GET',
                   responseType: 'blob',
                   url,
                   onload(e) {
-                    zip.file(`img/${item.replace(/\//g, '')}`, e.response)
-                    setTimeout(resolve, 50)
+                    if (e.status === 200) {
+                      resolve(e.response)
+                    } else {
+                      if (isRepeat) {
+                        resolve('')
+                      } else {
+                        requestImg(url, 1).then(data => {
+                          resolve(data)
+                        })
+                      }
+                    }
                   }
                 })
-              }))
-              return Promise.all(promiseArr)
+              })
             }
 
             function clearAdv() {
@@ -257,17 +275,19 @@
 
             function addScript() {
               return new Promise((resolve) => {
-                if (window.JSZip && window.saveAs){
+                if (window.JSZip && window.saveAs) {
                   resolve()
                 } else {
                   let i = 0
-                  function onload (){
+
+                  function onload() {
                     i++
                     if (i === 2) {
                       i = null
                       resolve()
                     }
                   }
+
                   $('body').append(`
                     <script id="jszip" src="https://cdn.staticfile.org/jszip/3.10.1/jszip.min.js" ></script>
                     <script id="FileSaver" src="https://cdn.staticfile.org/FileSaver.js/2.0.5/FileSaver.min.js"></script>
