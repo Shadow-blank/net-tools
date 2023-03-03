@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.1.6
+// @version      0.1.7
 // @description  你是GG还是MM啊
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -223,7 +223,7 @@
             }
 
             function getImage(strArr) {
-              return [...new Set(strArr.reduce((prev, curr) => prev.concat([...curr.matchAll(/<table[\W\w]*?\[img\]+.([^[]+)[\W\w]*?table>/g)].map(item => `${item[1]}` )), []))]
+              return [...new Set(strArr.reduce((prev, curr) => prev.concat([...curr.matchAll(/<table[\W\w]*?\[img\]+\.?([^[]+)[\W\w]*?table>/g)].map(item => `${item[1]}` )), []))]
             }
 
             function downImage(arr, zip) {
@@ -233,18 +233,36 @@
                   item = item.replace('.medium.jpg', '')
                   url = `https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`
                 }
-                console.log(`https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`)
+                console.log(url)
+                requestImg(url, zip).then(data => {
+                  zip.file(`img/${item.replace(/\//g, '')}`, data)
+                  resolve()
+                })
+              }))
+              return Promise.all(promiseArr)
+            }
+
+            function requestImg (url, isRepeat) {
+              return new Promise((resolve) => {
                 GM_xmlhttpRequest({
                   method: 'GET',
                   responseType: 'blob',
                   url,
                   onload(e) {
-                    zip.file(`img/${item.replace(/\//g, '')}`, e.response)
-                    setTimeout(resolve, 100)
+                    if (e.status === 200){
+                      resolve(e.response)
+                    } else {
+                      if (isRepeat){
+                        resolve('')
+                      } else {
+                        requestImg(url, 1).then(data => {
+                          resolve(data)
+                        })
+                      }
+                    }
                   }
                 })
-              }))
-              return Promise.all(promiseArr)
+              })
             }
 
             function clearAdv() {
