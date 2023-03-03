@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.1.8
+// @version      0.1.9
 // @description  你是GG还是MM啊
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -165,7 +165,7 @@
                 <a class="nav_link" id="downAllImage" href="javascript:void(0)"> 图片下载 </a>
                 <!--<a class= "nav_link" id="downDoc" href = "javascript:void(0)"> 保存此贴 </a>-->
               `
-              if (document.querySelector('.nav_spr')){
+              if (document.querySelector('.nav_spr')) {
                 str = `<span class="nav_spr">&emsp;<span>»</span></span>` + str
               }
 
@@ -223,13 +223,13 @@
             }
 
             function getImage(strArr) {
-              return [...new Set(strArr.reduce((prev, curr) => prev.concat([...curr.matchAll(/<table[\W\w]*?\[img\]+\.?([^[]+)[\W\w]*?table>/g)].map(item => `${item[1]}` )), []))]
+              return [...new Set(strArr.reduce((prev, curr) => prev.concat(...[...curr.matchAll(/<table[\W\w]*?table>/g)].map(([item]) => [...item.matchAll(/\[img\]+\.?([^\[]+)\[\/img\]/g) || []].map(item => item[1]))), []))]
             }
 
             function downImage(arr, zip) {
               const promiseArr = arr.map(item => new Promise((resolve) => {
                 let url = item
-                if (!item.includes('http')){
+                if (!item.includes('http')) {
                   item = item.replace('.medium.jpg', '')
                   url = `https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`
                 }
@@ -242,20 +242,20 @@
               return Promise.all(promiseArr)
             }
 
-            function requestImg (url, isRepeat) {
+            function requestImg(url, isRepeat = 0) {
               return new Promise((resolve) => {
                 GM_xmlhttpRequest({
                   method: 'GET',
                   responseType: 'blob',
                   url,
                   onload(e) {
-                    if (e.status === 200){
+                    if (e.status === 200) {
                       resolve(e.response)
                     } else {
-                      if (isRepeat){
+                      if (isRepeat === 10) {
                         resolve('')
                       } else {
-                        requestImg(url, 1).then(data => {
+                        requestImg(url, isRepeat++).then(data => {
                           resolve(data)
                         })
                       }
@@ -275,17 +275,19 @@
 
             function addScript() {
               return new Promise((resolve) => {
-                if (window.JSZip && window.saveAs){
+                if (window.JSZip && window.saveAs) {
                   resolve()
                 } else {
                   let i = 0
-                  function onload (){
+
+                  function onload() {
                     i++
                     if (i === 2) {
                       i = null
                       resolve()
                     }
                   }
+
                   $('body').append(`
                     <script id="jszip" src="https://cdn.staticfile.org/jszip/3.10.1/jszip.min.js" ></script>
                     <script id="FileSaver" src="https://cdn.staticfile.org/FileSaver.js/2.0.5/FileSaver.min.js"></script>
