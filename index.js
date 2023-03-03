@@ -152,7 +152,7 @@
           key: 'nga',
           name: '下载图片',
           run() {
-            if (!Object.fromEntries(new URLSearchParams(location.search)).tid) return
+            if (!__CURRENT_TID) return
             let href = location.href
             initNGA()
 
@@ -172,11 +172,9 @@
               $('#m_nav .nav .nav_link:nth-of-type(2)').after(str)
 
               $('#downAllImage').click(() => {
-                addScript()
                 down()
               })
               $('#downDoc').click(() => {
-                addScript()
                 down(1)
               })
 
@@ -187,23 +185,23 @@
              * @param downType 默认是图片 1是帖子
              */
             function down(downType = 0) {
-              getDocument().then(strArr => {
-                const zip = new JSZip()
-                const promiseArr = []
-
-                switch (downType) {
-                  case 0:
-                    promiseArr.push(downImage(getImage(strArr), zip))
-                    break
-                  case 1:
-                    break
-                }
-                Promise.all(promiseArr).then(() => {
-                  zip.generateAsync({type: 'blob'}).then(function (content) {
-                    saveAs(content, `${document.querySelector('title').innerText}.zip`);
-                  });
+              Promise.all([getDocument(), addScript()])
+                .then(([strArr]) => {
+                  let zip = new JSZip()
+                  const promiseArr = []
+                  switch (downType) {
+                    case 0:
+                      promiseArr.push(downImage(getImage(strArr), zip))
+                      break
+                    case 1:
+                      break
+                  }
+                  Promise.all(promiseArr).then(() => {
+                    zip.generateAsync({type: 'blob'}).then(function (content) {
+                      saveAs(content, `${document.querySelector('.x').innerText}.zip`);
+                    });
+                  })
                 })
-              })
             }
 
             function getDocument(currentPage = 1, documentArr = []) {
@@ -219,32 +217,30 @@
               })
             }
 
-            function parseDocument(str) {
-
-              //  if (currentPage < totalPage) {
-              //    getDocument(currentPage + 1)
-              //  }
-            }
-
             function isLastPage(str, currentPage) {
               // 最后一页 只有currentPage - 1 没有currentPage + 1
               return !str.includes(`page=${currentPage + 1}`)
             }
 
             function getImage(strArr) {
-              return [...new Set(strArr.reduce((prev, curr) => prev.concat([...curr.matchAll(/\[img\]\.([^\[]+)[/img]/g)].map(item => `${item[1]}g`)), []))]
+              return [...new Set(strArr.reduce((prev, curr) => prev.concat([...curr.matchAll(/<table[\W\w]*?\[img\]+.([^[]+)[\W\w]*?table>/g)].map(item => `${item[1]}` )), []))]
             }
 
             function downImage(arr, zip) {
               const promiseArr = arr.map(item => new Promise((resolve) => {
-                console.log(item)
+                let url = item
+                if (!item.includes('http')){
+                  item = item.replace('.medium.jpg', '')
+                  url = `https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`
+                }
+                console.log(`https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`)
                 GM_xmlhttpRequest({
                   method: 'GET',
                   responseType: 'blob',
-                  url: `https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`,
+                  url,
                   onload(e) {
                     zip.file(`img/${item.replace(/\//g, '')}`, e.response)
-                    resolve()
+                    setTimeout(resolve, 50)
                   }
                 })
               }))
@@ -260,8 +256,26 @@
             }
 
             function addScript() {
-              $('body').append(`<script src="https://cdn.staticfile.org/jszip/3.10.1/jszip.min.js"></script>`)
-              $('body').append(`<script src="https://cdn.staticfile.org/FileSaver.js/2.0.5/FileSaver.min.js"></script>`)
+              return new Promise((resolve) => {
+                if (window.JSZip && window.saveAs){
+                  resolve()
+                } else {
+                  let i = 0
+                  function onload (){
+                    i++
+                    if (i === 2) {
+                      i = null
+                      resolve()
+                    }
+                  }
+                  $('body').append(`
+                    <script id="jszip" src="https://cdn.staticfile.org/jszip/3.10.1/jszip.min.js" ></script>
+                    <script id="FileSaver" src="https://cdn.staticfile.org/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+                  `)
+                  $('#jszip').ready(onload)
+                  $('#FileSaver').ready(onload)
+                }
+              })
             }
           }
         }
@@ -314,7 +328,8 @@
   }
 
   function initModule() {
-    const host = location.host
+    const host = 'nga'
+    // const host = location.host
 
     data.checked.forEach(item => {
       const {children, value, key} = item

@@ -73,3 +73,20 @@ body {
   margin-left: 0.7em;
   margin-right: 50px;
 }
+
+.ogoodbtn a .iconfont {
+  fill: #fff8e7;
+}
+
+.xtxt , .stxt , .xxtxt {display:inline-block;font-size:inherit;transform: scale(0.75) translateY(8%);}
+.stxt {transform: scale(0.83) translateY(8%);}
+.xxtxt {transform: scale(0.583) translateY(8%);}
+
+.ogoodbtn{
+  display: flex!important;
+  align-items: center!important;
+}
+
+.r_container{
+  padding: 1px;
+}

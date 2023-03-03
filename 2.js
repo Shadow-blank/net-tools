@@ -1,7 +1,6 @@
 var str = document.querySelector('html').innerHTML
 str = str.slice(str.indexOf('commonui.userInfo.setAll'))
-
-let userData = {}
+var userData = {}
 var reg2 = /commonui\.userInfo\.setAll\(([\S\s]+)\)[\s]+\/\/userinfoend/g
 const a = str.replaceAll(reg2, (str, data) => {
   userData = JSON.parse(data)
@@ -14,8 +13,43 @@ var reg = /uid=([\d]+)[\S\s]+?time['"]>([^<]{10,20})[\S\s]+?id=[\S\s]+?postconte
 const contentList = {}
 str.replaceAll(reg, (str, uid, time, index, content) => {
   const [, votes, os] = /['"]0,([\d]+),0['"][\d,'"\s]+([a-zA-Z]+)/.exec(str) || []
+  const smile = /s:([\w]+):([\w\u4e00-\u9fa5]+)/
+  const p = /^pid=([0-9]+,)+/
+  const p2 = /^\/pid/
+  content = content.replace(/\[([\/]?[a-zA-Z0-9\u4e00-\u9fa5=,:]+)\]/g, (str, b, c, d) => {
+    switch (b) {
+      case 'quote' :
+        return '<div class="quote">'
+      case '/quote':
+        return '</div>'
+        break
+      case 'b':
+      case '/b':
+        return ' '
+        break
+      case '/pid':
+        return `<span></span>`
+      default:
+        if (smile.test(b)) {
+          const [, type, code] = smile.exec(b)
+          return `<img class="smile_${type}" src="https://img4.nga.178.com/ngabbs/post/smile/${ubbcode.smiles[type][code]}.png" alt="${code}">`
+        } else if (p.test(b)) {
+          const [tid, topid, page] = b.replace(/[^\d,]/g, '').split(',')
+          return `<a href="${location.origin}/read.php?tid=${tid}&topid=${topid}&page=${page}#pid${topid}Anchor" class="block_txt block_txt_c2" style="font-weight:normal;line-height:1.2em;margin-right:-0.25em" title="打开链接" target="_blank">+</a>`
+        }
+        return str
+    }
+  })
+  const userInfo = userData[uid]
+  const [, num] = userInfo.reputation && userInfo.reputation.match(new RegExp(`${__CURRENT_FID}_(-?[\d]+)`)) || [, 0]
+  userInfo.reputation = +num
+  const levelIndex = __CUSTOM_LEVEL.findIndex(item => item.r >= num)
+  userInfo.rText = __CUSTOM_LEVEL[levelIndex - 1].n
+  userInfo.rLever = levelIndex - 3
+  userInfo.regdate = commonui.time2date(userInfo.regdate, 'Y-m-d H:i')
+  userInfo.thisvisit = commonui.time2date(userInfo.thisvisit, 'Y-m-d H:i')
   contentList[index] = {
-    userInfo: userData[uid],
+    userInfo,
     time,
     content,
     votes,
@@ -97,7 +131,7 @@ function getRowLeft(index, userInfo) {
         </span>
         <a href="nuke.php?func=ucp&uid=${userInfo.uid}" class="author b nobr">
           <b class="block_txt" style="padding-left:0.2em;padding-right:0.2em;min-width:1em;text-align:center;background:#3b6843;color:#ffffff">
-          ${userInfo.username.slice(0,1)}
+          ${userInfo.username.slice(0, 1)}
           </b>${userInfo.username.slice(1)}
         </a> 
         <a href="javascript:void(0)" name="uid" class="small_colored_text_btn stxt block_txt_c0 vertmod" style="background:#bbb">${userInfo.uid}</a>
@@ -106,40 +140,32 @@ function getRowLeft(index, userInfo) {
       <div class="stat" style="margin:2px 0 0 0">
         <div style="width:100%">
           <div>
-            <div class="r_container" style="margin:2px 0 1px 0" title="用户${userInfo.username}的声望 &emsp;-450">
-              <table cellspacing="1" class="red">
-                <tbody>
-                 <tr>
-                  <td class="r_barc">
-                    <div style="width:45%" class="r_bar"></div>
-                 </td>
-                 </tr>
-                </tbody>
-              </table>
+            <div class="r_container" style="margin:2px 0 1px 0" title="用户${userInfo.username}的声望 &emsp;${userInfo.reputation}">
+                    <div style="width:${Math.abs(userInfo.reputation) / 10}%" class="r_bar"></div>
             </div>
             <div style="float:left;margin-right:3px;min-width:49%;*width:49%">
              <nobr>级别: 
-              <span class="silver">蒸汽</span>
+              <span class="silver">${userInfo.rText}</span>
               </nobr>
             </div>
             <div style="float:left;margin-right:3px">
               <nobr>声望: 
-                <span class="silver numericl">-450(lv-1)</span>
+                <span class="silver numericl">${userInfo.reputation}(lv${userInfo.rLever})</span>
               </nobr>
             </div>
             <div style="float:left;margin-right:3px;min-width:49%;*width:49%">
               <nobr>
-                <span title=" 注册时间: 2022-09-25 20:41 
-                   最后登陆: 2023-02-17 11:49 ">
+                <span title=" 注册时间: ${userInfo.regdate} 
+                   最后登陆: ${userInfo.thisvisit} ">
                       注册: 
-                      <span class="numeric silver" name="regdate">22-09-25</span>
+                      <span class="numeric silver" name="regdate">${userInfo.regdate.slice(2, 10)}</span>
                 </span>
               </nobr>
             </div>
             <div style="float:left">
               <nobr>威望: 
-                <span class="numericl silver">1</span>
-                <span class="silver">(学徒)</span>
+                <span class="numericl silver">${Math.floor(userInfo.rvrc / 10)}</span>
+                <span class="silver">(${userData.__GROUPS[userInfo.memberid][0]})</span>
               </nobr>
             </div>
             <div class="clear"></div>
@@ -155,7 +181,7 @@ function getRowLeft(index, userInfo) {
 
 
 console.log(contentList)
-document.querySelector('#root').innerHTML = doc
+// document.querySelector('#root').innerHTML = doc
 
 const style = document.createElement('style')
 
