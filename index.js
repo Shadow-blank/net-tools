@@ -152,7 +152,7 @@
           key: 'nga',
           name: '下载图片',
           run() {
-            if (!__CURRENT_TID) return
+            if (!__CURRENT_TID || !Object.fromEntries(new URLSearchParams(location.search)).tid) return
             let href = location.href
             initNGA()
 
@@ -169,14 +169,16 @@
                 str = `<span class="nav_spr">&emsp;<span>»</span></span>` + str
               }
 
-              $('#m_nav .nav .clear').first().before(str)
+              setTimeout(() => {
+                $('#m_nav .nav .clear').first().before.append(str)
 
-              $('#downAllImage').click(() => {
-                down()
-              })
-              $('#downDoc').click(() => {
-                down(1)
-              })
+                $('#downAllImage').click(() => {
+                  down()
+                })
+                $('#downDoc').click(() => {
+                  down(1)
+                })
+              }, 100)
 
             }
 
@@ -227,16 +229,18 @@
             }
 
             function downImage(arr, zip) {
+              let i = 0
               const promiseArr = arr.map(item => new Promise((resolve) => {
                 let url = item
                 if (!item.includes('http')) {
+                  // 有些图片会自带http 不确定是否全部是表情
                   item = item.replace('.medium.jpg', '')
                   url = `https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`
                 }
-                console.log(url)
                 requestImg(url, zip).then(data => {
                   zip.file(`img/${item.replace(/\//g, '')}`, data)
                   resolve()
+                  console.log(`${++i}/${arr.length}`)
                 })
               }))
               return Promise.all(promiseArr)
@@ -355,7 +359,7 @@
       if (host.includes(key) && value.length) {
         const currData = children.find(item => host.includes(item.key) && value.includes(item.key)) || {}
         const currentModule = module[key].children.find(item => item.key === currData.key)
-        return currentModule && currentModule.run()
+        return currentModule && setTimeout(currentModule.run, 100)
       }
     })
   }
