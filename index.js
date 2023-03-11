@@ -13,6 +13,7 @@
 // @match        *://ngabbs.com/read.php*
 // @match        *://nga.178.com/read.php*
 // @match        *://bbs.nga.cn/read.php*
+// @match        *://c.pc.qq.com/middlem.html*
 // @icon         https://raw.githubusercontent.com/Shadow-blank/net-tools/main/favicon.ico
 // @require      https://cdn.staticfile.org/jquery/3.4.0/jquery.min.js
 // @grant        GM_registerMenuCommand
@@ -28,7 +29,7 @@
 
   let data = null
 
-  const defaultCheck = ['m.weibo.cn', 'comicat.net', 'dick.xfani.com', 'live.bilibili.com', 'www.bilibili.com', 'nga']
+  const defaultCheck = ['m.weibo.cn', 'comicat.net', 'dick.xfani.com', 'live.bilibili.com', 'www.bilibili.com', 'nga', 'qq']
 
   const download = (blob, filename) => {
     const blobUrl = typeof blob === 'string' ? blob : window.URL.createObjectURL(blob);
@@ -301,6 +302,18 @@
                 }
               })
             }
+          }
+        }
+      ]
+    },
+    qq:{
+      name: 'qq',
+      children:[
+        {
+          key: 'qq',
+          name: 'qq群网站自动跳转',
+          run(){
+            location.href = Object.fromEntries(new URLSearchParams(location.href)).pfurl
           }
         }
       ]
