@@ -2,7 +2,7 @@
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
 // @version      0.1.9
-// @description  你是GG还是MM啊
+// @description  你是GG还是MM啊, NGA下载帖子图片, 不再拦截QQ群中链接
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
 // @match        *://www.comicat.org/*
@@ -171,7 +171,7 @@
               }
 
               setTimeout(() => {
-                $('#m_nav .nav .clear').first().before.append(str)
+                $('#m_nav .nav .clear').first().before().append(str)
 
                 $('#downAllImage').click(() => {
                   down()
