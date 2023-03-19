@@ -116,7 +116,7 @@
           name: '去除首页轮播图 只保留番剧和推荐',
           run() {
             createStyle(`
-          .bili-layout > .bili-grid, .recommended-swipe, .eva-banner{display: none!important;}
+          .bili-layout > .bili-grid, .recommended-swipe, .eva-banner, .bili-vote {display: none!important;}
           .bili-video-card.is-rcmd, .bili-layout > .bili-grid:nth-child(9), .bili-layout >.bili-grid:nth-child(1) {display: block!important;} `)
           }
         },
