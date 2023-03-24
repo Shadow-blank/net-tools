@@ -19,6 +19,7 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_xmlhttpRequest
 // @connect      img.nga.178.com
+// @connect      img4.nga.cn
 // @license      MIT
 // ==/UserScript==
 
@@ -209,6 +210,7 @@
 
             function getDocument(currentPage = 1, documentArr = []) {
               return new Promise(resolve => {
+                $('#downAllImage').text(`获取文档中..., 第${currentPage}页`)
                 $.get(href.replace(/page=[0-9]+/g, `page=${currentPage}`), str => {
                   documentArr.push(str)
                   if (isLastPage(str, currentPage)) {
@@ -242,7 +244,7 @@
                 requestImg(url, zip).then(data => {
                   zip.file(`img/${item.replace(/\//g, '')}`, data)
                   resolve()
-                  $('#downAllImage').text( ++i === arr.length ? '图片下载' : `${i}/${arr.length}`)
+                  $('#downAllImage').text(++i === arr.length ? '图片下载' : `${i}/${arr.length}`)
                 })
               }))
               return Promise.all(promiseArr)
@@ -266,6 +268,10 @@
                         })
                       }
                     }
+                  },
+                  onerror(e){
+                    console.log(e)
+                    resolve('')
                   }
                 })
               })
@@ -307,13 +313,13 @@
         }
       ]
     },
-    qq:{
+    qq: {
       name: 'qq',
-      children:[
+      children: [
         {
           key: 'qq',
           name: 'qq群网站自动跳转',
-          run(){
+          run() {
             location.href = document.querySelector('#url').innerText
           }
         }
