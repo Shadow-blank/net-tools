@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.2.0
+// @version      0.2.2
 // @description  你是GG还是MM啊, NGA下载帖子图片, 不再拦截QQ群中链接
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -73,8 +73,8 @@
                 table tbody tr td:nth-child(6) {cursor: pointer; user-select: none;}
                 table tbody tr td:nth-child(6) span:after {
                   content: url("data:image/svg+xml,%3csvg viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg' width='13' height='13' %3e%3cpath  d='M160 832h704a32 32 0 1 1 0 64H160a32 32 0 1 1 0-64zm384-253.696 236.288-236.352 45.248 45.248L508.8 704 192 387.2l45.248-45.248L480 584.704V128h64v450.304z'/%3e%3c/svg%3e");
-                  display: inline-block;margin-left: 10px; color: #606266;
-                }`)
+                  display: inline-block;margin-left: 10px; color: #606266;}`
+              )
               document.querySelector('#data_list').addEventListener('click', e => {
                 if (e.target.classList.value.includes('btl')) {
                   const magnet = /show-([a-z0-9]+)/.exec(e.target.parentElement.parentElement.innerHTML)[1]
@@ -230,6 +230,7 @@
             }
 
             function downImage(arr, zip) {
+              if (!arr.length) alert('此贴无图片可供下载')
               let i = 0
               const promiseArr = arr.map(item => new Promise((resolve) => {
                 let url = item
@@ -241,7 +242,7 @@
                 requestImg(url, zip).then(data => {
                   zip.file(`img/${item.replace(/\//g, '')}`, data)
                   resolve()
-                  console.log(`${++i}/${arr.length}`)
+                  $('#downAllImage').text( ++i === arr.length ? '图片下载' : `${i}/${arr.length}`)
                 })
               }))
               return Promise.all(promiseArr)
@@ -313,7 +314,7 @@
           key: 'qq',
           name: 'qq群网站自动跳转',
           run(){
-            location.href = Object.fromEntries(new URLSearchParams(location.href)).pfurl
+            location.href = document.querySelector('#url').innerText
           }
         }
       ]
