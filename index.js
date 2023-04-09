@@ -241,7 +241,7 @@
                   item = item.replace('.medium.jpg', '')
                   url = `https://${__ATTACH_BASE_VIEW_SEC}/attachments${item}`
                 }
-                requestImg(url, zip).then(data => {
+                requestImg(url).then(data => {
                   zip.file(`img/${item.replace(/\//g, '')}`, data)
                   resolve()
                   $('#downAllImage').text(++i === arr.length ? '图片下载' : `${i}/${arr.length}`)
@@ -263,7 +263,7 @@
                       if (isRepeat === 10) {
                         resolve('')
                       } else {
-                        requestImg(url, isRepeat++).then(data => {
+                        requestImg(url, ++isRepeat).then(data => {
                           resolve(data)
                         })
                       }
