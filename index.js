@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.2.2
+// @version      0.2.3
 // @description  你是GG还是MM啊, NGA下载帖子图片, 不再拦截QQ群中链接
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -154,11 +154,16 @@
           key: 'nga',
           name: '下载图片',
           run() {
-            if (!__CURRENT_TID || !Object.fromEntries(new URLSearchParams(location.search)).tid) return
             let href = location.href
-            initNGA()
+
+            setInterval(() => {
+              const flag = hasTid() && !document.querySelector('#downAllImage')
+              if (flag) initNGA()
+            }, 1000)
 
             function initNGA() {
+              if (!hasTid()) return
+
               clearAdv()
 
               if (!href.includes('page=')) href += `&page=${1}`
@@ -308,6 +313,10 @@
                   $('#FileSaver').ready(onload)
                 }
               })
+            }
+
+            function hasTid() {
+              return __CURRENT_TID || Object.fromEntries(new URLSearchParams(location.search)).tid
             }
           }
         }
