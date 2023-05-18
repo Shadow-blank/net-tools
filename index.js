@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         冲浪助手
 // @namespace    https://github.com/Shadow-blank/net-tools
-// @version      0.2.3
+// @version      0.2.4
 // @description  你是GG还是MM啊, NGA下载帖子图片, 不再拦截QQ群中链接
 // @author       Shadow-blank
 // @match        *://m.weibo.cn/status/*
@@ -142,7 +142,7 @@
                       .player-ctnr.left-container.p-relative.z-player-ctnr{ width: 100%;  margin: 10px auto}
                       .live-room-app .app-content{padding-top: 0;}
                       .live-room-app .app-content .app-body {width: 100%;}
-                       #iframe-popup-area, #aside-area-vm, #head-info-vm, #gift-control-vm, #sections-vm, #link-footer-vm, #sidebar-vm, #room-ssr-vm {display:none}
+                       #iframe-popup-area, #aside-area-vm, #head-info-vm, #gift-control-vm, #sections-vm, #link-footer-vm, #sidebar-vm, #room-ssr-vm, .super-gift-bubbles {display:none}
                       section{margin: 0}`)
           }
         }
